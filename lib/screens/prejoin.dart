@@ -255,7 +255,7 @@ class _PreJoinPageState extends State<PreJoinPage> {
       final listener = room.createListener();
 
       await room.prepareConnection(args.url, args.token);
-      final token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzI3MTY1NjQsImlkZW50aXR5IjoidGVzdC11c2VyIiwiaXNzIjoiZGV2a2V5IiwibmFtZSI6InRlc3QtdXNlciIsIm5iZiI6MTc3MjcxNjI2NCwic3ViIjoidGVzdC11c2VyIiwidmlkZW8iOnsicm9vbSI6InRlc3Ryb29tIiwicm9vbUpvaW4iOnRydWV9fQ.56DANoM5Qa4QR1B_U2C2De4s6jsRulSgzJL1EfKZ9jc";
+      //final token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzI3MTY1NjQsImlkZW50aXR5IjoidGVzdC11c2VyIiwiaXNzIjoiZGV2a2V5IiwibmFtZSI6InRlc3QtdXNlciIsIm5iZiI6MTc3MjcxNjI2NCwic3ViIjoidGVzdC11c2VyIiwidmlkZW8iOnsicm9vbSI6InRlc3Ryb29tIiwicm9vbUpvaW4iOnRydWV9fQ.56DANoM5Qa4QR1B_U2C2De4s6jsRulSgzJL1EfKZ9jc";
 
       // Try to connect to the room
       // This will throw an Exception if it fails for any reason.

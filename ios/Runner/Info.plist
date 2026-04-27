@@ -53,5 +53,17 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<key>UIBackgroundModes</key>
+	   <array>
+	     <string>audio</string>
+	     <string>voip</string>
+	   </array>
+
+	   <key>NSCameraUsageDescription</key>
+	   <string>Caméra nécessaire pour l'appel vidéo</string>
+
+	   <key>NSMicrophoneUsageDescription</key>
+	   <string>Micro nécessaire pour l'appel audio</string>
 </dict>
 </plist>

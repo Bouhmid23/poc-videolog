@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:livekit_client/livekit_client.dart';
+import 'package:livekitapp/core/api_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
@@ -20,10 +21,15 @@ import 'room.dart';
 // Device physique   → IP LAN de ta machine (ex: 192.168.1.42)
 // iOS Simulator     → localhost
 //
-const String kLiveKitWsUrl  = 'ws://192.168.1.7:7880';   // WebSocket LiveKit
-const String kLiveKitApiUrl = 'http://192.168.1.7:7880';  // HTTP API LiveKit
-const String kApiBaseUrl    = 'http://192.168.1.7:8000';  // Dashboard API (token)
+/*const String kLiveKitWsUrl  = 'ws://192.168.1.7:7880';   // WebSocket LiveKit
+const String kLiveKitApiUrl = ApiService.localURL;  // HTTP API LiveKit
+const String kApiBaseUrl    = ApiService.localURL; */ // Dashboard API (token)
 const String kDefaultRoom   = 'poc-room';               // room utilisée par le POC
+
+//const String kLiveKitWsUrl  = 'wss://livekit.opkodelabs.com';   // WebSocket LiveKit
+const String kLiveKitWsUrl  = 'ws://192.168.1.7:7880';   // WebSocket LiveKit
+//const String kLiveKitApiUrl = 'http://192.168.1.7:7880';  // HTTP API LiveKit
+//const String kApiBaseUrl    = 'http://192.168.1.7:8000';
 
 class JoinArgs {
   JoinArgs({
@@ -467,11 +473,11 @@ class ConnectPage extends StatefulWidget {
 class _ConnectPageState extends State<ConnectPage> {
   final _usernameCtrl = TextEditingController();
   bool _busy = false;
-  bool _simulcast = true;
-  bool _adaptiveStream = true;
-  bool _dynacast = true;
-  bool _e2ee = false;
-  String _preferredCodec = 'VP8';
+  final bool _simulcast = true;
+  final bool _adaptiveStream = true;
+  final bool _dynacast = true;
+  final bool _e2ee = false;
+  final String _preferredCodec = 'VP8';
 
   @override
   void initState() {
@@ -521,6 +527,25 @@ class _ConnectPageState extends State<ConnectPage> {
       throw Exception('Token fetch failed (${response.statusCode}): ${response.body}');
     }
   }
+
+  /*Future<String> _fetchToken({
+    required String username,
+    required String room,
+  }) async {
+    // Endpoint ajouté dans api.py du POC
+    final response = await http.post(
+      Uri.parse('${ApiService.baseUrl}/${ApiService.tokenEndpoint}'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'username': username, 'room': room}),
+    ).timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      return data['token'] as String;
+    } else {
+      throw Exception('Token fetch failed (${response.statusCode}): ${response.body}');
+    }
+  }*/
 
   Future<void> _connect(BuildContext ctx) async {
     if (_usernameCtrl.text.trim().isEmpty) {
@@ -589,9 +614,9 @@ class _ConnectPageState extends State<ConnectPage> {
                 margin: const EdgeInsets.only(bottom: 20),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blueGrey.withValues(alpha: .15),
+                  color: Colors.blueGrey.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blueGrey.withValues(alpha: .3)),
+                  border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

@@ -15,12 +15,6 @@ void main() async {
   });
 
   WidgetsFlutterBinding.ensureInitialized();
-  /*if (lkPlatformIsDesktop()) {
-    await FlutterWindowClose.setWindowShouldCloseHandler(() async {
-      await onWindowShouldClose?.call();
-      return true;
-    });
-  }*/
 
    await LiveKitClient.initialize(
     bypassVoiceProcessing: lkPlatformIsMobile(),
@@ -41,3 +35,5 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+

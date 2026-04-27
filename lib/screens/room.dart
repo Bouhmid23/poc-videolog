@@ -16,31 +16,25 @@ import '../widgets/participant_info.dart';
 // En dev local : pointe vers le dashboard-api Docker exposé sur :8000
 // En prod      : remplacer par l'URL publique de ton API
 //const String kApiBaseUrl = 'http://10.0.2.2:8000'; // Android emulator → localhost
- const String kApiBaseUrl = 'http://192.168.1.X:8000'; // Device physique → IP machine
+ const String kApiBaseUrl = 'http://192.168.1.7:8000';
+ //const String kApiBaseUrl = 'https://livekit.opkodelabs.com';
 
 // ─── Format télémétrie (aligné avec telemetry-agent/agent.py) ─────────────────
 // Le topic "telemetry" est filtré par l'agent Python.
 // Le champ "ts" (Unix ms) est la clé de synchronisation avec la vidéo.
-Map<String, dynamic> _buildTelemetryPayload({
+Map<String, dynamic> _buildTelemetryPayload ({
   required double speed,
-  required int rpm,
-  required int gear,
-  required double throttle,
-  required double brake,
-  required double temperature,
   required double lat,
   required double lng,
 }) {
   return {
-    "type": "telemetry",          // filtré par agent.py : if raw.get("type") != "telemetry"
+    "type": "telemetry",
     "ts": DateTime.now().millisecondsSinceEpoch, // clé de sync PTS
     "payload": {
-      "speed":       speed,
-      "rpm":         rpm,
-      "gear":        gear,
-      "throttle":    throttle,
-      "brake":       brake,
-      "temperature": temperature,
+      "role": "trainee",
+      "speed":      12.3,
+      "heart_rate": 162,
+      "cadence":    158,
       "gps": {
         "lat": lat,
         "lng": lng,
@@ -128,9 +122,9 @@ class _RoomPageState extends State<RoomPage> {
     _startTelemetry();
 
     // 3. Démarrer l'enregistrement Egress (une seule fois)
-    if (!_recordingStarted) {
+    /*if (!_recordingStarted) {
       await _startRecording();
-    }
+    }*/
   }
 
   // ── Télémétrie ────────────────────────────────────────────────────
@@ -161,11 +155,6 @@ class _RoomPageState extends State<RoomPage> {
 
     final payload = _buildTelemetryPayload(
       speed:       double.parse(speed.toStringAsFixed(1)),
-      rpm:         rpm,
-      gear:        gear,
-      throttle:    double.parse(throttle.toStringAsFixed(2)),
-      brake:       double.parse(brake.toStringAsFixed(2)),
-      temperature: double.parse(temperature.toStringAsFixed(1)),
       lat:         double.parse(lat.toStringAsFixed(6)),
       lng:         double.parse(lng.toStringAsFixed(6)),
     );
@@ -260,7 +249,7 @@ class _RoomPageState extends State<RoomPage> {
 
   Future<void> _disposeRoomAsync() async {
     // Arrêter l'enregistrement proprement avant de quitter
-    await _stopRecording();
+    //await _stopRecording();
     await _listener.dispose();
     await widget.room.dispose();
   }
