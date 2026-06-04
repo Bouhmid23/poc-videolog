@@ -60,10 +60,19 @@
 	     <string>voip</string>
 	   </array>
 
-	   <key>NSCameraUsageDescription</key>
-	   <string>Caméra nécessaire pour l'appel vidéo</string>
+	<key>io.flutter.embedded_views_preview</key><true />
 
-	   <key>NSMicrophoneUsageDescription</key>
-	   <string>Micro nécessaire pour l'appel audio</string>
+
+	<key>NSCameraUsageDescription</key>
+	<string>Caméra nécessaire pour l'appel vidéo</string>
+
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Bluetooth nécessaire pour connecter les devices BLE</string>
+
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Bluetooth nécessaire pour connecter les devices BLE</string>
+
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Micro nécessaire pour l'appel audio</string>
 </dict>
 </plist>

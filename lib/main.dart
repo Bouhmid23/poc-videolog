@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:livekit_client/livekit_client.dart';
-import 'package:livekitapp/screens/connect.dart';
+import 'package:livekitapp/presentation/screens/login_screen.dart';
 import 'package:livekitapp/theme.dart';
 import 'package:logging/logging.dart';
 
@@ -11,7 +11,7 @@ void main() async {
   // configure logs for debugging
   Logger.root.level = Level.FINEST;
   Logger.root.onRecord.listen((record) {
-    print('${format.format(record.time)} [${record.level.name}]: ${record.message}');
+    debugPrint('${format.format(record.time)} [${record.level.name}]: ${record.message}');
   });
 
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: LiveKitTheme().buildThemeData(context),
       title: 'LiveKit Demo',
-      home: const ConnectPage(),
+      home: const LoginScreen(),
     );
   }
 }

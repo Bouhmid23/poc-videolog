@@ -9,90 +9,156 @@ import 'package:google_fonts/google_fonts.dart';
 //
 
 extension LKColors on Colors {
-  static const lkBlue = Color(0xFF5A8BFF);
-  static const lkDarkBlue = Color(0xFF00153C);
+  static const primary = Color(0xFF5A8BFF);
+  static const primaryDark = Color(0xFF3D6EE0);
+  static const secondary = Color(0xFF22D3EE);
+
+  // Surfaces
+  static const background = Color(0xFF0B1120);
+  static const surface = Color(0xFF111827);
+  static const surfaceElevated = Color(0xFF172034);
+  static const border = Color(0xFF273449);
+
+  // Text
+  static const textPrimary = Color(0xFFF8FAFC);
+  static const textSecondary = Color(0xFFB8C4D9);
+  static const textHint = Color(0xFF93A2BE);
+
+  // States
+  static const success = Color(0xFF22C55E);
+  static const warning = Color(0xFFF59E0B);
+  static const danger = Color(0xFFEF4444);
+
+  // Backward compatibility in existing code
+  static const lkBlue = primary;
+  static const lkDarkBlue = surfaceElevated;
 }
 
 class LiveKitTheme {
-  //
-  final bgColor = Colors.black;
-  final textColor = Colors.white;
-  final cardColor = LKColors.lkDarkBlue;
-  final accentColor = LKColors.lkBlue;
+  const LiveKitTheme();
 
-  ThemeData buildThemeData(BuildContext ctx) => ThemeData(
-    appBarTheme: AppBarTheme(
-      backgroundColor: cardColor,
-    ),
-    cardColor: cardColor,
-    scaffoldBackgroundColor: bgColor,
-    canvasColor: bgColor,
-    iconTheme: IconThemeData(
-      color: textColor,
-    ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ButtonStyle(
-        textStyle: WidgetStateProperty.all<TextStyle>(GoogleFonts.montserrat(
-          fontSize: 15,
-        )),
-        padding: WidgetStateProperty.all<EdgeInsets>(const EdgeInsets.symmetric(vertical: 20, horizontal: 25)),
-        shape:
-        WidgetStateProperty.all<OutlinedBorder>(RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-        foregroundColor: WidgetStateProperty.all<Color>(Colors.white),
-        // backgroundColor: WidgetStateProperty.all<Color>(accentColor),
-        backgroundColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.disabled)) {
-            return accentColor.withValues(alpha: 0.5);
-          }
-          return accentColor;
+  ThemeData buildThemeData(BuildContext ctx) {
+    final baseTextTheme = GoogleFonts.montserratTextTheme(Theme
+        .of(ctx)
+        .textTheme).apply(
+      displayColor: LKColors.textPrimary,
+      bodyColor: LKColors.textPrimary,
+      decorationColor: LKColors.textPrimary,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      scaffoldBackgroundColor: LKColors.background,
+      canvasColor: LKColors.background,
+      cardColor: LKColors.surface,
+      dividerColor: LKColors.border,
+      hintColor: LKColors.textHint,
+      iconTheme: const IconThemeData(color: LKColors.textPrimary),
+      textTheme: baseTextTheme,
+
+      colorScheme: const ColorScheme.dark(
+        primary: LKColors.primary,
+        onPrimary: Colors.white,
+        secondary: LKColors.secondary,
+        onSecondary: Colors.white,
+        surface: LKColors.surface,
+        onSurface: LKColors.textPrimary,
+        error: LKColors.danger,
+        onError: Colors.white,
+      ),
+
+      appBarTheme: AppBarTheme(
+        backgroundColor: LKColors.surface,
+        foregroundColor: LKColors.textPrimary,
+        elevation: 0,
+        titleTextStyle: baseTextTheme.titleLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: LKColors.textPrimary,
+        ),
+      ),
+
+      cardTheme: CardThemeData(
+        color: LKColors.surfaceElevated,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: LKColors.border),
+        ),
+      ),
+
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ButtonStyle(
+          textStyle: WidgetStateProperty.all(
+            baseTextTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          padding: WidgetStateProperty.all(
+            const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          ),
+          shape: WidgetStateProperty.all(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          foregroundColor: WidgetStateProperty.all(Colors.white),
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) {
+              return LKColors.primary.withValues(alpha: 0.45);
+            }
+            if (states.contains(WidgetState.pressed)) {
+              return LKColors.primaryDark;
+            }
+            return LKColors.primary;
+          }),
+        ),
+      ),
+
+      checkboxTheme: CheckboxThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        checkColor: WidgetStateProperty.all(Colors.white),
+        fillColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return LKColors.primary;
+          return Colors.transparent;
+        }),
+        side: const BorderSide(color: LKColors.border),
+      ),
+      switchTheme: SwitchThemeData(
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return LKColors.primary;
+          return LKColors.border;
+        }),
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return Colors.white;
+          return LKColors.textSecondary;
         }),
       ),
-    ),
-    checkboxTheme: CheckboxThemeData(
-      checkColor: WidgetStateProperty.all(Colors.white),
-      fillColor: WidgetStateProperty.all(accentColor),
-    ),
-    switchTheme: SwitchThemeData(
-      trackColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) {
-          return accentColor;
-        }
-        return accentColor.withValues(alpha: 0.3);
-      }),
-      thumbColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) {
-          return Colors.white;
-        }
-        return Colors.white.withValues(alpha: 0.3);
-      }),
-    ),
-    dialogTheme: DialogThemeData(
-      backgroundColor: cardColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+      dialogTheme: DialogThemeData(
+        backgroundColor: LKColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
-    ),
-    textTheme: GoogleFonts.montserratTextTheme(
-      Theme.of(ctx).textTheme,
-    ).apply(
-      displayColor: textColor,
-      bodyColor: textColor,
-      decorationColor: textColor,
-    ),
-    hintColor: Colors.red,
-    inputDecorationTheme: InputDecorationTheme(
-      labelStyle: const TextStyle(
-        color: LKColors.lkBlue,
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: LKColors.surface,
+        labelStyle: const TextStyle(color: LKColors.textSecondary),
+        hintStyle: const TextStyle(color: LKColors.textHint),
+        prefixIconColor: LKColors.textSecondary,
+        suffixIconColor: LKColors.textSecondary,
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14, vertical: 14),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: LKColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: LKColors.primary, width: 1.4),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: LKColors.danger),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: LKColors.danger, width: 1.4),
+        ),
       ),
-      hintStyle: TextStyle(
-        color: LKColors.lkBlue.withValues(alpha: 5),
-      ),
-      enabledBorder: InputBorder.none,
-      focusedBorder: InputBorder.none,
-    ),
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: Colors.white,
-      surface: bgColor,
-    ),
-  );
+    );
+  }
 }
