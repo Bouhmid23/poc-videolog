@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart' hide ConnectionState;
 import 'package:flutter_pose_detection/flutter_pose_detection.dart';
 import 'package:flutter_reactive_ble/flutter_reactive_ble.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:livekit_client/livekit_client.dart';
 
 import '../../core/ble_telemetry_service.dart';
@@ -84,7 +85,7 @@ class _RoomPageState extends State<RoomPage> {
   final NpuPoseDetector _poseDetector = NpuPoseDetector(
     config: PoseDetectorConfig.realtime(),
   );
-  
+
   // Instance de lissage temporel
   final PostureSmoothing _postureSmoothing = PostureSmoothing(alpha: 0.35);
 
@@ -97,8 +98,13 @@ class _RoomPageState extends State<RoomPage> {
 
   final BleTelemetryService _bleService = BleTelemetryService();
   StreamSubscription<List<DiscoveredDevice>>? _bleScanSub;
-  StreamSubscription<Map<String, dynamic>>? _bleTelemetrySub;
-  Map<String, dynamic>? _bleTelemetry;
+  StreamSubscription<SportMetrics>? _bleMetricsSub;
+  SportMetrics? _bleMetrics;
+
+  StreamSubscription<Position>? _gpsSub;
+  double _totalDistanceMiles = 0.0;
+  Position? _lastPosition;
+  DateTime? _lastGlassesDisplayTime;
 
   @override
   void initState() {
@@ -135,19 +141,59 @@ class _RoomPageState extends State<RoomPage> {
     await _poseDetector.initialize();
     _startTelemetry();
     _startPoseDetection();
+    _startGps();
+  }
+
+  void _startGps() {
+    _gpsSub?.cancel();
+    try {
+      _gpsSub =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 5,
+            ),
+          ).listen((position) {
+            if (_lastPosition != null) {
+              final delta = SportMetrics.haversineDistanceMiles(
+                _lastPosition!.latitude,
+                _lastPosition!.longitude,
+                position.latitude,
+                position.longitude,
+              );
+              _totalDistanceMiles += delta;
+              debugPrint(
+                '?? GPS: delta=${delta.toStringAsFixed(4)}mi total=${_totalDistanceMiles.toStringAsFixed(4)}mi',
+              );
+            }
+            _lastPosition = position;
+          });
+    } catch (e) {
+      debugPrint('?? GPS error: $e');
+    }
+  }
+
+  void _stopGps() {
+    _gpsSub?.cancel();
+    _gpsSub = null;
   }
 
   void _onBleConnected() {
-    _bleTelemetrySub?.cancel();
-    _bleTelemetrySub = _bleService.telemetryStream.listen((data) {
+    _bleMetricsSub?.cancel();
+    _bleMetricsSub = _bleService.metricsStream.listen((data) {
       if (!mounted) return;
-      setState(() => _bleTelemetry = data);
+      debugPrint(
+        '?? BLE metrics: bpm=${data.bpm} kcal=${data.kcal} '
+        'distance=${data.distanceMiles}mi battery=${data.battery}% '
+        'gesture=${data.gestureDetected} touch=${data.touchDetected}',
+      );
+      setState(() => _bleMetrics = data);
     });
     setState(() {});
   }
 
   void _onBleDisconnected() {
-    setState(() => _bleTelemetry = null);
+    setState(() => _bleMetrics = null);
   }
 
   void _startTelemetry() {
@@ -163,27 +209,22 @@ class _RoomPageState extends State<RoomPage> {
     if (connectionState != ConnectionState.connected) return;
 
     _simT += 0.5;
-    final speed = 90 + 30 * math.sin(_simT * 0.3) + _random.nextDouble() * 4 - 2;
+    final speed =
+        90 + 30 * math.sin(_simT * 0.3) + _random.nextDouble() * 4 - 2;
+    final bpmFromGlasses = _bleMetrics?.bpm ?? 0;
+    final heartRate = bpmFromGlasses > 0
+        ? bpmFromGlasses.toDouble()
+        : (145 + _random.nextDouble() * 30);
+    final cadence = 150 + _random.nextDouble() * 20;
     final lat = 36.8065 + 0.002 * math.sin(_simT * 0.1);
     final lng = 10.1815 + 0.003 * math.cos(_simT * 0.1);
 
-    Map<String, dynamic>? telemetryFromBle;
-    final bleRoot = _bleTelemetry;
-    if (bleRoot != null) {
-      final payload = bleRoot['payload'];
-      if (payload is Map<String, dynamic>) {
-        telemetryFromBle = payload;
-      } else {
-        telemetryFromBle = bleRoot;
-      }
-    }
-
     final payload = _buildTelemetryPayload(
       speed: double.parse(speed.toStringAsFixed(1)),
-      heartRate: _toDouble(telemetryFromBle?['heart_rate'], 145 + _random.nextDouble() * 30),
-      cadence: _toDouble(telemetryFromBle?['cadence'], 150 + _random.nextDouble() * 20),
-      lat: double.parse(lat.toStringAsFixed(6)),
-      lng: double.parse(lng.toStringAsFixed(6)),
+      heartRate: heartRate,
+      cadence: cadence,
+      lat: double.parse(lat.toStringAsFixed(2)),
+      lng: double.parse(lng.toStringAsFixed(2)),
     );
 
     try {
@@ -196,6 +237,34 @@ class _RoomPageState extends State<RoomPage> {
     } catch (e) {
       debugPrint('? Erreur envoi DataTrack: ');
     }
+
+    final deviceId = _bleService.connectedDeviceId;
+    if (deviceId != null && _bleService.isDisplaySessionActive) {
+      final now = DateTime.now();
+      if (_lastGlassesDisplayTime == null ||
+          now.difference(_lastGlassesDisplayTime!) >=
+              const Duration(seconds: 2)) {
+        _lastGlassesDisplayTime = now;
+        unawaited(
+          _bleService.displayMetrics(
+            deviceId,
+            distanceMiles: _totalDistanceMiles > 0
+                ? _totalDistanceMiles
+                : _simT * 0.02 +
+                      0.1 *
+                          math.sin(
+                            _simT * 0.05,
+                          ), // fallback simulé avant les premiers points GPS
+            bpm: heartRate.round().clamp(30, 220),
+            kcal: (heartRate * 0.05 * _simT / 60)
+                .round()
+                .clamp(0, 9999),
+          ),
+        );
+      }
+    } else if (deviceId != null && !_bleService.isDisplaySessionActive) {
+      debugPrint('?? Glasses display skipped: session not started');
+    }
   }
 
   void _stopTelemetry() {
@@ -205,7 +274,9 @@ class _RoomPageState extends State<RoomPage> {
 
   void _startPoseDetection() {
     _poseTimer ??= Timer.periodic(
-      const Duration(milliseconds: 100), // Augment� pour plus de r�activit� avec lissage
+      const Duration(
+        milliseconds: 100,
+      ), // Augment� pour plus de r�activit� avec lissage
       (_) => unawaited(_detectPoseTick()),
     );
     debugPrint('?? D�tection de posture ML Kit d�marr�e');
@@ -253,7 +324,7 @@ class _RoomPageState extends State<RoomPage> {
       _currentLocalPose = _postureSmoothing.smooth(rawPose);
       _currentLocalPoseFrameSize = analysis.frameSize;
       //_currentLocalPosture = analysis.posture;
-      
+
       if (analysis.posture == null) {
         _remotePostures.remove(localParticipant.identity);
       } else {
@@ -292,8 +363,8 @@ class _RoomPageState extends State<RoomPage> {
   }
 
   Future<_LocalPoseAnalysis?> _detectPoseFromTrack(
-      LocalVideoTrack track,
-      ) async {
+    LocalVideoTrack track,
+  ) async {
     try {
       final buffer = await track.mediaStreamTrack.captureFrame();
       final bytes = Uint8List.view(buffer);
@@ -301,23 +372,29 @@ class _RoomPageState extends State<RoomPage> {
 
       // Plus besoin de décoder en RGBA ni de InputImage
       final result = await _poseDetector.detectPose(bytes);
-      debugPrint('?? flutter_pose_detection.detectPose.hasPoses=${result.hasPoses}');
+      debugPrint(
+        '?? flutter_pose_detection.detectPose.hasPoses=${result.hasPoses}',
+      );
       if (!result.hasPoses) return null;
 
-        // Récupérer la taille du frame via décodage minimal
-       debugPrint('?? decoding frame for size...');
-       final codec = await ui.instantiateImageCodec(bytes);
+      // Récupérer la taille du frame via décodage minimal
+      debugPrint('?? decoding frame for size...');
+      final codec = await ui.instantiateImageCodec(bytes);
       try {
         final frameInfo = await codec.getNextFrame();
         final frameSize = Size(
           frameInfo.image.width.toDouble(),
           frameInfo.image.height.toDouble(),
         );
-         debugPrint('?? decoded frame size: ${frameSize.width}x${frameSize.height}');
+        debugPrint(
+          '?? decoded frame size: ${frameSize.width}x${frameSize.height}',
+        );
         frameInfo.image.dispose();
 
         final pose = result.firstPose!;
-         debugPrint('?? detected pose landmarks count: ${pose.landmarks.length}');
+        debugPrint(
+          '?? detected pose landmarks count: ${pose.landmarks.length}',
+        );
         return _LocalPoseAnalysis(
           pose: pose,
           frameSize: frameSize,
@@ -335,10 +412,14 @@ class _RoomPageState extends State<RoomPage> {
   RemotePosture? _classifyPosture(Pose pose) {
     PoseLandmark? landmark(LandmarkType type) => pose.getLandmark(type);
     double averageLikelihood(List<PoseLandmark?> landmarks) {
-      final values = landmarks.whereType<PoseLandmark>().map((item) => item.visibility).toList();
+      final values = landmarks
+          .whereType<PoseLandmark>()
+          .map((item) => item.visibility)
+          .toList();
       if (values.isEmpty) return 0.0;
       return values.reduce((a, b) => a + b) / values.length;
     }
+
     Offset? midpoint(LandmarkType a, LandmarkType b) {
       final left = landmark(a);
       final right = landmark(b);
@@ -346,7 +427,10 @@ class _RoomPageState extends State<RoomPage> {
       return Offset((left.x + right.x) / 2, (left.y + right.y) / 2);
     }
 
-    final shoulderMid = midpoint(LandmarkType.leftShoulder, LandmarkType.rightShoulder);
+    final shoulderMid = midpoint(
+      LandmarkType.leftShoulder,
+      LandmarkType.rightShoulder,
+    );
     final hipMid = midpoint(LandmarkType.leftHip, LandmarkType.rightHip);
     if (shoulderMid == null || hipMid == null) return null;
 
@@ -355,12 +439,22 @@ class _RoomPageState extends State<RoomPage> {
 
     final torsoDx = shoulderMid.dx - hipMid.dx;
     final torsoDy = hipMid.dy - shoulderMid.dy;
-    final torsoAngleDeg = math.atan2(torsoDx.abs(), torsoDy.abs().clamp(1e-6, double.infinity).toDouble()) * 180 / math.pi;
+    final torsoAngleDeg =
+        math.atan2(
+          torsoDx.abs(),
+          torsoDy.abs().clamp(1e-6, double.infinity).toDouble(),
+        ) *
+        180 /
+        math.pi;
 
     final torsoLength = math.max((hipMid.dy - shoulderMid.dy).abs(), 1.0);
-    final kneeDrop = kneeMid == null ? 0.0 : (kneeMid.dy - hipMid.dy) / torsoLength;
-    final ankleDrop = ankleMid == null ? 0.0 : (ankleMid.dy - hipMid.dy) / torsoLength;
-    
+    final kneeDrop = kneeMid == null
+        ? 0.0
+        : (kneeMid.dy - hipMid.dy) / torsoLength;
+    final ankleDrop = ankleMid == null
+        ? 0.0
+        : (ankleMid.dy - hipMid.dy) / torsoLength;
+
     final confidence = averageLikelihood([
       landmark(LandmarkType.leftShoulder),
       landmark(LandmarkType.rightShoulder),
@@ -368,7 +462,9 @@ class _RoomPageState extends State<RoomPage> {
       landmark(LandmarkType.rightHip),
     ]);
 
-    final label = torsoAngleDeg > 48 ? 'allong�' : (kneeDrop < 0.35 && ankleDrop < 0.7 ? 'assis' : 'debout');
+    final label = torsoAngleDeg > 48
+        ? 'allong�'
+        : (kneeDrop < 0.35 && ankleDrop < 0.7 ? 'assis' : 'debout');
 
     return RemotePosture(
       label: label,
@@ -380,8 +476,9 @@ class _RoomPageState extends State<RoomPage> {
   @override
   void dispose() {
     _stopTelemetry();
+    _stopGps();
     unawaited(_bleScanSub?.cancel());
-    unawaited(_bleTelemetrySub?.cancel());
+    unawaited(_bleMetricsSub?.cancel());
     unawaited(_bleService.dispose());
     _stopPoseDetection();
     _poseDetector.dispose();
@@ -394,12 +491,6 @@ class _RoomPageState extends State<RoomPage> {
   Future<void> _disposeRoomAsync() async {
     await _listener.dispose();
     await widget.room.dispose();
-  }
-
-  double _toDouble(dynamic value, double fallback) {
-    if (value == null) return fallback;
-    if (value is num) return value.toDouble();
-    return double.tryParse(value.toString()) ?? fallback;
   }
 
   void _setUpListeners() => _listener
@@ -431,7 +522,11 @@ class _RoomPageState extends State<RoomPage> {
 
   void _onRoomDidUpdate() => _sortParticipants();
 
-  void _updatePostureFromData(Participant? participant, String decoded, String? topic) {
+  void _updatePostureFromData(
+    Participant? participant,
+    String decoded,
+    String? topic,
+  ) {
     if (participant == null) return;
     try {
       final data = jsonDecode(decoded);
@@ -455,39 +550,62 @@ class _RoomPageState extends State<RoomPage> {
 
   void _sortParticipants() {
     final activeIdentities = <String>{
-      if (widget.room.localParticipant != null) widget.room.localParticipant!.identity,
+      if (widget.room.localParticipant != null)
+        widget.room.localParticipant!.identity,
       ...widget.room.remoteParticipants.values.map((p) => p.identity),
     };
-    _remotePostures.removeWhere((identity, _) => !activeIdentities.contains(identity));
+    _remotePostures.removeWhere(
+      (identity, _) => !activeIdentities.contains(identity),
+    );
 
     final userMediaTracks = <ParticipantTrack>[];
     final screenTracks = <ParticipantTrack>[];
-    
+
     for (var participant in widget.room.remoteParticipants.values) {
       for (var t in participant.videoTrackPublications) {
         if (t.isScreenShare) {
-          screenTracks.add(ParticipantTrack(participant: participant, type: ParticipantTrackType.kScreenShare));
+          screenTracks.add(
+            ParticipantTrack(
+              participant: participant,
+              type: ParticipantTrackType.kScreenShare,
+            ),
+          );
         } else {
-          userMediaTracks.add(ParticipantTrack(participant: participant, posture: _postureForParticipant(participant)));
+          userMediaTracks.add(
+            ParticipantTrack(
+              participant: participant,
+              posture: _postureForParticipant(participant),
+            ),
+          );
         }
       }
     }
-    
+
     userMediaTracks.sort((a, b) {
-      if (a.participant.isSpeaking && b.participant.isSpeaking) return a.participant.audioLevel > b.participant.audioLevel ? -1 : 1;
+      if (a.participant.isSpeaking && b.participant.isSpeaking) {
+        return a.participant.audioLevel > b.participant.audioLevel ? -1 : 1;
+      }
       final aSpokeAt = a.participant.lastSpokeAt?.millisecondsSinceEpoch ?? 0;
       final bSpokeAt = b.participant.lastSpokeAt?.millisecondsSinceEpoch ?? 0;
       if (aSpokeAt != bSpokeAt) return aSpokeAt > bSpokeAt ? -1 : 1;
-      return a.participant.joinedAt.millisecondsSinceEpoch - b.participant.joinedAt.millisecondsSinceEpoch;
+      return a.participant.joinedAt.millisecondsSinceEpoch -
+          b.participant.joinedAt.millisecondsSinceEpoch;
     });
 
     final localTracks = widget.room.localParticipant?.videoTrackPublications;
     if (localTracks != null) {
       for (var t in localTracks) {
         if (t.isScreenShare) {
-          screenTracks.add(ParticipantTrack(participant: widget.room.localParticipant!, type: ParticipantTrackType.kScreenShare));
+          screenTracks.add(
+            ParticipantTrack(
+              participant: widget.room.localParticipant!,
+              type: ParticipantTrackType.kScreenShare,
+            ),
+          );
         } else {
-          debugPrint('?? _sortParticipants: adding local avatarOnly track with pose=${_currentLocalPose != null} frameSize=${_currentLocalPoseFrameSize}');
+          debugPrint(
+            '?? _sortParticipants: adding local avatarOnly track with pose=${_currentLocalPose != null} frameSize=$_currentLocalPoseFrameSize',
+          );
           userMediaTracks.add(
             ParticipantTrack(
               participant: widget.room.localParticipant!,
@@ -507,12 +625,17 @@ class _RoomPageState extends State<RoomPage> {
 
   ParticipantTrack? _primaryParticipantTrack() {
     for (final track in participantTracks) {
-      if (track.participant is LocalParticipant && track.type == ParticipantTrackType.kUserMedia) return track;
+      if (track.participant is LocalParticipant &&
+          track.type == ParticipantTrackType.kUserMedia) {
+        return track;
+      }
     }
     return participantTracks.isNotEmpty ? participantTracks.first : null;
   }
 
-  List<ParticipantTrack> _secondaryParticipantTracks(ParticipantTrack? primaryTrack) {
+  List<ParticipantTrack> _secondaryParticipantTracks(
+    ParticipantTrack? primaryTrack,
+  ) {
     if (primaryTrack == null) return participantTracks;
     return participantTracks.where((track) => track != primaryTrack).toList();
   }
@@ -529,8 +652,10 @@ class _RoomPageState extends State<RoomPage> {
             children: [
               Expanded(
                 child: primaryTrack != null
-                    ? ParticipantWidget.widgetFor(primaryTrack, showStatsLayer: true)
-                    : Container(),
+                    ? ParticipantWidget.widgetFor(
+                          primaryTrack,
+                          showStatsLayer: true,
+                      ) : Container(),
               ),
               if (widget.room.localParticipant != null)
                 SafeArea(
@@ -553,6 +678,7 @@ class _RoomPageState extends State<RoomPage> {
               height: 200,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: secondaryTracks.length,
                 itemBuilder: (BuildContext context, int index) => SizedBox(
                   width: 200,
@@ -562,7 +688,6 @@ class _RoomPageState extends State<RoomPage> {
               ),
             ),
           ),
-
         ],
       ),
     );

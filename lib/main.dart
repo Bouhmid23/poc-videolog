@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: LiveKitTheme().buildThemeData(context),
-      title: 'LiveKit Demo',
+      title: 'VideoLog',
       home: const LoginScreen(),
     );
   }

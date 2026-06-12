@@ -149,10 +149,15 @@ abstract class _ParticipantWidgetState<T extends ParticipantWidget>
   Widget build(BuildContext ctx) => Container(
     foregroundDecoration: BoxDecoration(
       border: widget.participant.isSpeaking && !isScreenShare
-          ? Border.all(width: 5, color: LKColors.lkBlue)
+          ? Border.all(width: 3, color: LKColors.lkBlue)
           : null,
+      borderRadius: BorderRadius.circular(12),
     ),
-    decoration: BoxDecoration(color: Theme.of(ctx).cardColor),
+    decoration: BoxDecoration(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    clipBehavior: Clip.antiAlias,
     child: Stack(
       children: [
         // 1. FLUX VIDEO PRINCIPAL (Toujours en fond)
@@ -162,6 +167,7 @@ abstract class _ParticipantWidgetState<T extends ParticipantWidget>
               ? VideoTrackRenderer(
                   renderMode: VideoRenderMode.auto,
                   activeVideoTrack!,
+                  fit: VideoViewFit.cover,
                 )
               : const NoVideoWidget(),
         ),
@@ -217,10 +223,10 @@ abstract class _ParticipantWidgetState<T extends ParticipantWidget>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              ...extraWidgets(isScreenShare),
+              //...extraWidgets(isScreenShare),
               ParticipantInfoWidget(
                 title: widget.participant.name.isNotEmpty
-                    ? ' ()'
+                    ? widget.participant.name
                     : widget.participant.identity,
                 audioAvailable: audioPublication?.muted == false && audioPublication?.subscribed == true,
                 connectionQuality: widget.participant.connectionQuality,

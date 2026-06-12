@@ -45,7 +45,7 @@ class ParticipantInfoWidget extends StatelessWidget {
   const ParticipantInfoWidget({
     this.title,
     this.audioAvailable = true,
-    this.connectionQuality = ConnectionQuality.unknown,
+    this.connectionQuality = ConnectionQuality.excellent,
     this.isScreenShare = false,
     this.enabledE2EE = false,
     super.key,
@@ -53,51 +53,60 @@ class ParticipantInfoWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    color: Colors.black.withValues(alpha: 0.3),
-    padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 10),
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: 0.5),
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(10),
+        topRight: Radius.circular(10),
+      ),
+    ),
+    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.end,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (title != null)
-          Flexible(child: Text(title!, overflow: TextOverflow.ellipsis)),
-        isScreenShare
-            ? const Padding(
-                padding: EdgeInsets.only(left: 5),
-                child: Icon(Icons.monitor, color: Colors.white, size: 16),
-              )
-            : Padding(
-                padding: const EdgeInsets.only(left: 5),
-                child: Icon(
-                  audioAvailable ? Icons.mic : Icons.mic_off,
-                  color: audioAvailable ? Colors.white : Colors.red,
-                  size: 16,
-                ),
+          Flexible(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Text(title!,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
               ),
-        if (connectionQuality != ConnectionQuality.unknown)
-          Padding(
-            padding: const EdgeInsets.only(left: 5),
-            child: Icon(
-              connectionQuality == ConnectionQuality.poor
-                  ? Icons.wifi_off_outlined
-                  : Icons.wifi,
-              color: {
-                ConnectionQuality.excellent: Colors.green,
-                ConnectionQuality.good: Colors.orange,
-                ConnectionQuality.poor: Colors.red,
-              }[connectionQuality],
-              size: 16,
             ),
           ),
-        Padding(
-          padding: const EdgeInsets.only(left: 5),
-          child: Icon(
-            enabledE2EE ? Icons.lock : Icons.lock_open,
-            color: enabledE2EE ? Colors.green : Colors.red,
-            size: 16,
-          ),
+        //_icon(Icons.monitor, null, isScreenShare),
+        _icon(
+          audioAvailable ? Icons.mic : Icons.mic_off,
+          audioAvailable ? null : Colors.red,
+          !isScreenShare,
         ),
+        /*if (connectionQuality != ConnectionQuality.unknown)
+          _icon(
+            connectionQuality == ConnectionQuality.poor
+                ? Icons.wifi_off_outlined
+                : Icons.wifi,
+            {
+              ConnectionQuality.excellent: Colors.green,
+              ConnectionQuality.good: Colors.orange,
+              ConnectionQuality.poor: Colors.red,
+            }[connectionQuality],
+            true,
+          ),
+        _icon(
+          enabledE2EE ? Icons.lock : Icons.lock_open,
+          enabledE2EE ? Colors.green : Colors.red,
+          true,
+        ),*/
       ],
     ),
   );
+
+  Widget _icon(IconData icon, Color? color, bool show) {
+    if (!show) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Icon(icon, color: color ?? Colors.white, size: 20),
+    );
+  }
 }
