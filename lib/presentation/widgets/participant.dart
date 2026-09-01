@@ -6,6 +6,7 @@ import 'package:flutter_pose_detection/flutter_pose_detection.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'dart:async';
 import '../../data/remote_posture.dart';
+import '../../data/remote_telemetry.dart';
 import '../../theme.dart';
 import 'no_video.dart';
 import 'participant_info.dart';
@@ -22,9 +23,11 @@ abstract class ParticipantWidget extends StatefulWidget {
         participantTrack.type,
         showStatsLayer,
         posture: participantTrack.posture,
+        telemetry: participantTrack.telemetry,
         pose: participantTrack.pose,
         poseFrameSize: participantTrack.poseFrameSize,
         avatarOnly: participantTrack.avatarOnly,
+        showPosePip: participantTrack.showPosePip,
       );
     } else if (participantTrack.participant is RemoteParticipant) {
       return RemoteParticipantWidget(
@@ -32,9 +35,11 @@ abstract class ParticipantWidget extends StatefulWidget {
         participantTrack.type,
         showStatsLayer,
         posture: participantTrack.posture,
+        telemetry: participantTrack.telemetry,
         pose: participantTrack.pose,
         poseFrameSize: participantTrack.poseFrameSize,
         avatarOnly: participantTrack.avatarOnly,
+        showPosePip: participantTrack.showPosePip,
       );
     }
     throw UnimplementedError('Unknown participant type');
@@ -44,16 +49,20 @@ abstract class ParticipantWidget extends StatefulWidget {
   abstract final ParticipantTrackType type;
   abstract final bool showStatsLayer;
   final RemotePosture? posture;
+  final RemoteTelemetry? telemetry;
   final Pose? pose;
   final Size? poseFrameSize;
   final bool avatarOnly;
+  final bool showPosePip;
   final VideoQuality quality;
 
   const ParticipantWidget({
     this.posture,
+    this.telemetry,
     this.pose,
     this.poseFrameSize,
     this.avatarOnly = false,
+    this.showPosePip = true,
     this.quality = VideoQuality.HIGH,
     super.key,
   });
@@ -72,9 +81,11 @@ class LocalParticipantWidget extends ParticipantWidget {
     this.type,
     this.showStatsLayer, {
     super.posture,
+    super.telemetry,
     super.pose,
     super.poseFrameSize,
     super.avatarOnly,
+    super.showPosePip,
     super.key,
   });
 
@@ -95,9 +106,11 @@ class RemoteParticipantWidget extends ParticipantWidget {
     this.type,
     this.showStatsLayer, {
     super.posture,
+    super.telemetry,
     super.pose,
     super.poseFrameSize,
     super.avatarOnly,
+    super.showPosePip,
     super.key,
   });
 
@@ -172,10 +185,13 @@ abstract class _ParticipantWidgetState<T extends ParticipantWidget>
               : const NoVideoWidget(),
         ),
 
-        // 2. PIP AVATAR (Haut � Droite)
-        if (widget.pose != null && widget.poseFrameSize != null && !isScreenShare)
+        // 2. PIP AVATAR (Bas � Droite, au-dessus de la barre d'infos)
+        if (widget.pose != null &&
+            widget.poseFrameSize != null &&
+            widget.showPosePip &&
+            !isScreenShare)
           Positioned(
-            top: 20,
+            bottom: 45,
             right: 15,
             child: Container(
               width: 120,
@@ -217,6 +233,16 @@ abstract class _ParticipantWidgetState<T extends ParticipantWidget>
           ),
 
         // 4. Barre d'infos (Bas)*/
+        // Badge t�l�m�trie (haut gauche) : toutes les infos non null
+        if ((widget.telemetry != null || widget.posture != null) && !isScreenShare)
+          Positioned(
+            top: 30,
+            left: 10,
+            child: TelemetryBadge(
+              telemetry: widget.telemetry,
+              posture: widget.posture,
+            ),
+          ),
         Align(
           alignment: Alignment.bottomCenter,
           child: Column(

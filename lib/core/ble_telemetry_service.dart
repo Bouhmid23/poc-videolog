@@ -90,14 +90,17 @@ const int _flowStop    = 0x02;
 //            value y=174        (h=32 → bas à y=206)
 //
 const int _xLeft      = 10;   // marge gauche standard
-const int _yDistLabel = 10;
-const int _yDistValue = 34;
-const int _ySep1      = 72;
-const int _yBpmLabel  = 80;
-const int _yBpmValue  = 104;
-const int _ySep2      = 142;
-const int _yKcalLabel = 150;
-const int _yKcalValue = 174;
+const int _yDistLabel = 5;
+const int _yDistValue = 25;
+const int _ySep1      = 60;
+const int _yBpmLabel  = 65;
+const int _yBpmValue  = 85;
+const int _ySep2      = 120;
+const int _yKcalLabel = 125;
+const int _yKcalValue = 145;
+const int _ySep3      = 180;
+const int _yRpmLabel  = 185;
+const int _yRpmValue  = 205;
 const int _kSafeMarginX = 16;
 
 // ─── Modèle ───────────────────────────────────────────────────────────────────
@@ -449,6 +452,7 @@ class BleTelemetryService {
         required double distanceMiles,
         required int bpm,
         required int kcal,
+        int? cadence,
       }) async {
     if (!_displaySessionActive || !_canSendData) return;
 
@@ -456,50 +460,35 @@ class BleTelemetryService {
     final distStr = '${distKm.toStringAsFixed(2)} km';
     final bpmStr  = '$bpm bpm';
     final kcalStr = '$kcal kcal';
+    final rpmStr  = '${cadence ?? 0} rpm';
+
     debugPrint("distance $distStr");
     debugPrint("bpm $bpmStr");
     debugPrint("kcal $kcalStr");
+    if (cadence != null) debugPrint("cadence $rpmStr");
 
     // ── Début rendu atomique ──────────────────────────────────────────────
     await enqueueCommand(deviceId, _buildFrame(_cmdHoldFlush, [_actionHold]));
     await enqueueCommand(deviceId, _buildFrame(_cmdClear, []));
 
-    // ── DIST ─────────────────────────────────────────────────────────────
-    /*await enqueueCommand(deviceId, _buildTextCommand(
-      x: _centerX('DIST', _kFontSmall), y: _yDistLabel, fontId: _kFontSmall, color: _kColorGray, text: 'DIST',
-    ));*/
-
-
+    // ── DIST (Zone 1) ────────────────────────────────────────────────────
     await enqueueCommand(deviceId, _buildTextCommand(
-      x: 250,
-      y: _yDistValue + 20,
-      fontId: _kFontValue,
-      color: _kColorWhite,
-      text: distStr,
+      x: 250, y: _yDistValue, fontId: _kFontValue, color: _kColorWhite, text: distStr,
     ));
 
-    // ── BPM ──────────────────────────────────────────────────────────────
-    /*await enqueueCommand(deviceId, _buildTextCommand(
-      x: _centerX('BPM', _kFontSmall), y: _yBpmLabel, fontId: _kFontSmall, color: _kColorGray, text: 'BPM',
-    ));*/
+    // ── BPM (Zone 2) ─────────────────────────────────────────────────────
     await enqueueCommand(deviceId, _buildTextCommand(
-      x: 250,
-      y: _yBpmValue + 20,
-      fontId: _kFontValue,
-      color: _kColorWhite,
-      text: bpmStr,
+      x: 250, y: _yBpmValue, fontId: _kFontValue, color: _kColorWhite, text: bpmStr,
     ));
 
-    // ── KCAL ─────────────────────────────────────────────────────────────
-    /*await enqueueCommand(deviceId, _buildTextCommand(
-      x: _centerX('KCAL', _kFontSmall), y: _yKcalLabel, fontId: _kFontSmall, color: _kColorGray, text: 'KCAL',
-    ));*/
+    // ── KCAL (Zone 3) ────────────────────────────────────────────────────
     await enqueueCommand(deviceId, _buildTextCommand(
-      x: 250,
-      y: _yKcalValue +20 ,
-      fontId: _kFontValue,
-      color: _kColorWhite,
-      text: kcalStr,
+      x: 250, y: _yKcalValue, fontId: _kFontValue, color: _kColorWhite, text: kcalStr,
+    ));
+
+    // ── RPM (Zone 4) ─────────────────────────────────────────────────────
+    await enqueueCommand(deviceId, _buildTextCommand(
+      x: 250, y: _yRpmValue, fontId: _kFontValue, color: _kColorWhite, text: rpmStr,
     ));
 
     // ── Fin rendu atomique ────────────────────────────────────────────────

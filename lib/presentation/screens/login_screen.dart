@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../theme.dart';
-import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -33,10 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     final displayName = email.split('@').first;
-    await Navigator.pushReplacement<void, void>(
-      context,
-      MaterialPageRoute(builder: (_) => HomeScreen(username: displayName)),
-    );
+    context.go('/home/$displayName');
   }
 
   @override

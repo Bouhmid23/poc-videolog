@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../theme.dart';
-import 'rooms_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({required this.username, super.key});
@@ -105,10 +105,7 @@ class HomeScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => RoomsScreen(username: username)),
-                ),
+                onPressed: () => context.push('/rooms/$username'),
                 icon: const Icon(Icons.sports_score_outlined),
                 label: const Text('Entrer dans une room'),
               ),

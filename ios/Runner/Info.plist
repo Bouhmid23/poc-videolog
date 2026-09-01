@@ -29,14 +29,6 @@
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
 	<key>UISupportedInterfaceOrientations</key>
-	<key>NSCameraUsageDescription</key>
-	<string>$(PRODUCT_NAME) uses your camera</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>$(PRODUCT_NAME) uses your microphone</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>audio</string>
-	</array>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
@@ -53,26 +45,25 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-
 	<key>UIBackgroundModes</key>
-	   <array>
-	     <string>audio</string>
-	     <string>voip</string>
-	   </array>
-
-	<key>io.flutter.embedded_views_preview</key><true />
-
-
+	<array>
+		<string>audio</string>
+		<string>voip</string>
+		<string>location</string>
+	</array>
+	<key>io.flutter.embedded_views_preview</key>
+	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Caméra nécessaire pour l'appel vidéo</string>
-
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Bluetooth nécessaire pour connecter les devices BLE</string>
-
-	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Bluetooth nécessaire pour connecter les devices BLE</string>
-
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Micro nécessaire pour l'appel audio</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Bluetooth nécessaire pour connecter les devices BLE</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Bluetooth nécessaire pour connecter les devices BLE</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Position nécessaire pour la télémétrie GPS en direct</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Position nécessaire pour la télémétrie GPS en arrière-plan</string>
 </dict>
 </plist>

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,7 +13,7 @@ import 'package:http/http.dart' as http;
 import '../../exts.dart';
 import '../../theme.dart';
 
-import 'room.dart';
+const String kApiBaseUrl    = 'https://api.videolog.app';
 
 // ─── Config POC ───────────────────────────────────────────────────────────────
 // Pointe vers le LiveKit Server Docker exposé sur le réseau local
@@ -129,7 +130,7 @@ class _PreJoinPageState extends State<PreJoinPage> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _setEnableVideo(value) async {
+  Future<void> _setEnableVideo(bool value) async {
     _enableVideo = value;
     await _writePrefs();
     if (!_enableVideo) {
@@ -145,7 +146,7 @@ class _PreJoinPageState extends State<PreJoinPage> {
     setState(() {});
   }
 
-  Future<void> _setEnableAudio(value) async {
+  Future<void> _setEnableAudio(bool value) async {
     _enableAudio = value;
     await _writePrefs();
     if (!_enableAudio) {
@@ -190,7 +191,7 @@ class _PreJoinPageState extends State<PreJoinPage> {
     super.dispose();
   }
 
-  _join(BuildContext context) async {
+  Future<void> _join(BuildContext context) async {
     _busy = true;
     setState(() {});
 
@@ -246,11 +247,9 @@ class _PreJoinPageState extends State<PreJoinPage> {
       );
 
       if (!context.mounted) return;
-      await Navigator.push<void>(
-        context,
-        MaterialPageRoute(
-          builder: (_) => RoomPage(room, listener, fastConnection: true),
-        ),
+      await context.push<void>(
+        '/room',
+        extra: (room, listener),
       );
     } catch (error) {
       debugPrint('Could not connect $error');
@@ -258,6 +257,7 @@ class _PreJoinPageState extends State<PreJoinPage> {
       await context.showErrorDialog(error);
     } finally {
       setState(() { _busy = false; });
+      if (mounted) context.go('/home/${widget.args.username}');
     }
   }
 
@@ -265,7 +265,7 @@ class _PreJoinPageState extends State<PreJoinPage> {
     await _setEnableVideo(false);
     await _setEnableAudio(false);
     if (!context.mounted) return;
-    Navigator.of(context).pop();
+    context.pop();
   }
 
   Future<void> _readPrefs() async {
@@ -436,7 +436,7 @@ class _PreJoinPageState extends State<PreJoinPage> {
                   ),
                 ),
                 ElevatedButton(
-                  onPressed: _busy ? null : () => _join(context),
+                  onPressed: _busy ? null : () async => await _join(context),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -570,22 +570,18 @@ class _ConnectPageState extends State<ConnectPage> {
       final token = await _fetchToken(username: username, room: widget.roomName);
 
       if (!ctx.mounted) return;
-      await Navigator.push<void>(
-        ctx,
-        MaterialPageRoute(
-          builder: (_) => PreJoinPage(
-            args: JoinArgs(
-              url:                  kLiveKitWsUrl,
-              username:             username,
-              token:                token,
-              e2ee:                 _e2ee,
-              simulcast:            _simulcast,
-              adaptiveStream:       _adaptiveStream,
-              dynacast:             _dynacast,
-              preferredCodec:       _preferredCodec,
-              enableBackupVideoCodec: ['VP9', 'AV1'].contains(_preferredCodec),
-            ),
-          ),
+      await ctx.push<void>(
+        '/prejoin',
+        extra: JoinArgs(
+          url:                  kLiveKitWsUrl,
+          username:             username,
+          token:                token,
+          e2ee:                 _e2ee,
+          simulcast:            _simulcast,
+          adaptiveStream:       _adaptiveStream,
+          dynacast:             _dynacast,
+          preferredCodec:       _preferredCodec,
+          enableBackupVideoCodec: ['VP9', 'AV1'].contains(_preferredCodec),
         ),
       );
     } catch (error) {

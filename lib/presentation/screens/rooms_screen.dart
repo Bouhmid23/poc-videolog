@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../theme.dart';
-import 'connect.dart';
 
 class RoomsScreen extends StatelessWidget {
   const RoomsScreen({required this.username, super.key});
@@ -50,15 +50,7 @@ class RoomsScreen extends StatelessWidget {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => ConnectPage(
-                              initialUsername: username,
-                              roomName: roomName,
-                            ),
-                          ),
-                        );
+                        context.push('/connect/$roomName', extra: username);
                       },
                       child: const Text('Rejoindre'),
                     ),

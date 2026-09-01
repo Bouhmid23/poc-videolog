@@ -3,6 +3,7 @@ import 'package:flutter_pose_detection/flutter_pose_detection.dart';
 import 'package:livekit_client/livekit_client.dart';
 
 import '../../data/remote_posture.dart';
+import '../../data/remote_telemetry.dart';
 
 enum ParticipantTrackType { kUserMedia, kScreenShare }
 
@@ -23,16 +24,20 @@ class ParticipantTrack {
     required this.participant,
     this.type = ParticipantTrackType.kUserMedia,
     this.posture,
+    this.telemetry,
     this.pose,
     this.poseFrameSize,
     this.avatarOnly = false,
+    this.showPosePip = true,
   });
   Participant participant;
   final ParticipantTrackType type;
   final RemotePosture? posture;
+  final RemoteTelemetry? telemetry;
   final Pose? pose;
   final Size? poseFrameSize;
   final bool avatarOnly;
+  final bool showPosePip;
 }
 
 class ParticipantInfoWidget extends StatelessWidget {
@@ -107,6 +112,116 @@ class ParticipantInfoWidget extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Icon(icon, color: color ?? Colors.white, size: 20),
+    );
+  }
+}
+
+class TelemetryBadge extends StatelessWidget {
+  final RemoteTelemetry? telemetry;
+  final RemotePosture? posture;
+
+  const TelemetryBadge({super.key, this.telemetry, this.posture});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <Widget>[];
+
+    if (telemetry != null) {
+      if (telemetry!.hasHrm) {
+        items.add(_chip(
+          icon: Icons.favorite,
+          iconColor: Colors.redAccent,
+          value: '${telemetry!.heartRate}',
+          unit: 'BPM',
+        ));
+      }
+      if (telemetry!.speed != null) {
+        items.add(_chip(
+          icon: Icons.speed,
+          iconColor: Colors.amberAccent,
+          value: telemetry!.speed!.toStringAsFixed(1),
+          unit: 'km/h',
+        ));
+      }
+      if (telemetry!.cadence != null) {
+        items.add(_chip(
+          icon: Icons.pedal_bike,
+          iconColor: Colors.lightGreenAccent,
+          value: telemetry!.cadence!.toStringAsFixed(0),
+          unit: 'RPM',
+        ));
+      }
+      /*if (telemetry!.lat != null) {
+        items.add(_chip(
+          icon: Icons.my_location,
+          iconColor: Colors.lightBlueAccent,
+          value: telemetry!.lat!.toStringAsFixed(5),
+          unit: 'Lat',
+        ));
+      }
+      if (telemetry!.lng != null) {
+        items.add(_chip(
+          icon: Icons.my_location,
+          iconColor: Colors.lightBlueAccent,
+          value: telemetry!.lng!.toStringAsFixed(5),
+          unit: 'Lng',
+        ));
+      }*/
+    }
+
+    /*if (posture != null) {
+      items.add(_chip(
+        icon: Icons.accessibility_new,
+        iconColor: Colors.cyanAccent,
+        value: posture!.label,
+        unit: null,
+      ));
+    }*/
+
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int i = 0; i < items.length; i++) ...[
+            if (i > 0) const SizedBox(width: 6),
+            items[i],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _chip({
+    required IconData icon,
+    required Color iconColor,
+    required String value,
+    String? unit,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: iconColor, size: 14),
+        const SizedBox(width: 3),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+        ),
+        if (unit != null) ...[
+          const SizedBox(width: 1),
+          Text(unit, style: const TextStyle(color: Colors.white70, fontSize: 8)),
+        ],
+      ],
     );
   }
 }

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:livekit_client/livekit_client.dart';
-import 'package:livekitapp/presentation/screens/login_screen.dart';
 import 'package:livekitapp/theme.dart';
 import 'package:logging/logging.dart';
 
+import 'router.dart';
 
 void main() async {
   final format = DateFormat('HH:mm:ss');
-  // configure logs for debugging
   Logger.root.level = Level.FINEST;
   Logger.root.onRecord.listen((record) {
     debugPrint('${format.format(record.time)} [${record.level.name}]: ${record.message}');
@@ -16,9 +15,9 @@ void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
 
-   await LiveKitClient.initialize(
+  await LiveKitClient.initialize(
     bypassVoiceProcessing: lkPlatformIsMobile(),
-   );
+  );
   runApp(const MyApp());
 }
 
@@ -27,13 +26,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       theme: LiveKitTheme().buildThemeData(context),
       title: 'VideoLog',
-      home: const LoginScreen(),
+      routerConfig: goRouter,
     );
   }
 }
-
-
